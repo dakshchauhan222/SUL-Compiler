@@ -1,0 +1,24 @@
+lowkey Main {
+    aura main_character() {
+        yap("Hello Teacher! This is native Assembly String Generation!");
+
+        aura x = 10;
+        aura y = 3;
+        aura sum = x + y;
+        yap(sum);
+
+        aura max = 0;
+        sus (x > y) {
+            max = x;
+        } cap {
+            max = y;
+        }
+        yap(max);
+
+        slay 0;
+    }
+}
+
+javac -d out src\phase2\*.java src\phase3\*.java src\phase4\*.java src\phase5\*.java src\phase6\*.java src\CompilerServer.java src\MainDriver.java  
+
+java -cp out CompilerServer  

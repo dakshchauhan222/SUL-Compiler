@@ -1,0 +1,52 @@
+========================================================================
+           SUL COMPILER: KEY HIGHLIGHTS FOR MENTOR REVIEW
+========================================================================
+
+1. WHAT IS SUL?
+------------------------------------------------------------------------
+SUL (Simple Universal Language) is a "hybrid" compiler that blends carefully 
+selected features from C and Java with modern GenZ-themed keywords. It 
+is designed to teach students how code transforms into machine logic.
+
+2. CORE USP (UNIQUE SELLING PROPOSITION)
+------------------------------------------------------------------------
+* GenZ Keywords: Replaces cryptic keywords (int, if, while) with slang
+  (aura, sus, bruh, yap). This lowers the "entry barrier" for new learners.
+* Hybrid Structure: Uses a Java-style "Class Wrapper" (lowkey) but a 
+  C-style "Entry Point" (main_character).
+* Educational Assembly: Unlike production compilers, SUL generates 
+  x86-64 Assembly that is heavily annotated with educational comments.
+
+3. GRAMMAR SOURCES & MODIFICATIONS
+------------------------------------------------------------------------
+We didn't just copy the C or Java grammars; we used "Subset Grammars" 
+and modified them significantly:
+
+* FROM JAVA: We took the 'Class Declaration' logic.
+  - Modification: We restricted it to exactly 1 entry point and removed 
+    complex modifers (static, public) to keep the AST readable.
+* FROM C: We took the 'Procedural Logic' and 'Function Entry' logic.
+  - Modification: We implemented "Implicit Declaration" (variables are 
+    declared the first time they are assigned), removing C's overhead.
+* MATHEMATICAL CHANGE (THE BIG ONE):
+  - Standard C/Java use "Left-Recursive" math rules. 
+  - We manually rewrote these into an "LL(1) Grammar" (T E' pattern) 
+    so our compiler can be built by hand without third-party tools.
+
+4. WHY IT IS NOT A "COPIED" COMPILER
+------------------------------------------------------------------------
+* Handwritten Lexer/Parser: We did not use ANTLR or Yacc. Every line 
+  of code in the Lexer and Parser was written specifically for SUL.
+* Custom Grammar Definition: The grammar spec in Phase 1 was built 
+  by us to specifically handle LL(1) deterministic parsing.
+* Unique Token System: A standard compiler cannot recognize 'sus' or 
+  'cap'. Our token engine is a 100% custom implementation.
+
+5. TECHNICAL SUMMARY
+------------------------------------------------------------------------
+- Implementation: LL(1) Recursive Descent (Top-Down).
+- Source Language: SUL (GenZ Slang).
+- Target Language: x86-64 Assembly (Linux/macOS style).
+- Phases: Lexical -> Syntax (AST) -> Semantic -> Code Gen.
+- Language Rules: Statically typed (aura), Implicit declaration, 
+  Scoped blocks, Structured branching if/while.

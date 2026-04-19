@@ -1,0 +1,22 @@
+# Java compiled files
+*.class
+bin/
+out/
+
+# Output files from compilation pipeline
+output.asm
+output.obj
+output.o
+output.exe
+output
+
+# IDE specific files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# System files
+Thumbs.db
+.DS_Store

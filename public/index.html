@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUL Compiler Web IDE</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&family=Outfit:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header flex-between">
+            <div class="brand">
+                <h1>SUL Compiler</h1>
+                <span class="badge">x86-64 NASM</span>
+            </div>
+            <div class="actions">
+                <button id="themeToggleBtn" class="btn btn-secondary">
+                    <span>Theme: Default</span>
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                    Clear Output
+                </button>
+                <button id="runBtn" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <span>Run Code</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main IDE Layout -->
+        <main class="ide-layout">
+            <!-- Left: Code Editor -->
+            <section class="editor-panel panel">
+                <div class="panel-header">
+                    <h2>Source Code</h2>
+                    <span class="lang-tag">SUL</span>
+                </div>
+                <!-- Basic syntax highlighting wrapper -->
+                <div class="editor-wrapper">
+                    <div id="lineNumbers" class="line-numbers">1</div>
+                    <div class="editor-container">
+                        <pre id="highlightLayer" class="highlight-layer" aria-hidden="true"></pre>
+                        <textarea id="codeEditor" spellcheck="false" placeholder="// Write your SUL code here...&#10;lowkey Main {&#10;    aura main_character() {&#10;        yap(&quot;Hello Teacher! Native x86 Strings!&quot;);&#10;&#10;        aura x = 5;&#10;        aura y = 10;&#10;        bruh (x < y) {&#10;            yap(x);&#10;            x = x + 1;&#10;        }&#10;        sus (x == 10) {&#10;            yap(999);&#10;        } cap {&#10;            yap(1000);&#10;        }&#10;        slay 0;&#10;    }&#10;}"></textarea>
+                    </div>
+                </div>
+                <!-- Status Bar -->
+                <div class="status-bar">
+                    <div class="status-left">
+                        <span class="status-dot green"></span>
+                        <span id="statusMessage">Ready to slay</span>
+                    </div>
+                    <div class="status-center" id="auraMeterBtn" title="Click to view Aura Streak!" style="cursor: pointer;">
+                        <span style="font-weight: 600;">AURA</span>
+                        <div class="aura-track">
+                            <div id="auraFill" class="aura-fill" style="width: 0%;"></div>
+                        </div>
+                        <span id="auraScore" style="font-weight: 600;">0</span>
+                    </div>
+                    <div class="status-right">
+                        <span class="status-dot purple"></span>
+                        <span id="cursorPos">Ln 1, Col 1</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Output Panel -->
+            <section class="output-panel panel">
+                <div class="panel-header">
+                    <h2>Terminal / Output</h2>
+                </div>
+                <div class="output-container">
+                    <div id="loadingIndicator" class="loading hidden">
+                        <div class="spinner"></div>
+                        <span>Compiling pipeline...</span>
+                    </div>
+                    <pre id="outputDisplay" class="output-display"><span class="placeholder">Awaiting compilation...</span></pre>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Snapchat Streak Style Overlay -->
+    <div id="streakOverlay" class="streak-overlay hidden">
+        <div class="streak-content">
+            <button type="button" id="closeStreakBtn" class="streak-close">&times;</button>
+            <div class="streak-flame">🔥</div>
+            <div class="streak-score-wrapper">
+                <span id="streakScoreDisplay" class="streak-score">0</span>
+            </div>
+            <div class="streak-label">AURA SCORE</div>
+            <div class="streak-instruction">📸 Take a screenshot to share!</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

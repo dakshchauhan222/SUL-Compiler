@@ -1,0 +1,99 @@
+========================================================================
+             SUL COMPILER DESIGN APPROACH & WORKFLOW                  
+========================================================================
+
+1. COMPILER DESIGN APPROACH
+------------------------------------------------------------------------
+We are building a traditional multi-phase compiler using a "Top-Down" 
+predictive parsing approach, specifically LL(1) Recursive Descent.
+
+This means:
+- "Top-Down": We start at the highest level of grammar (a 'Program')
+  and break it down systematically into smaller components 
+  (Statements -> Expressions -> Operations -> Numbers/Variables).
+- "LL(1)":
+  - L: Scans the source code from Left to Right.
+  - L: Produces a Leftmost derivation of the grammar.
+  - 1: Uses exactly '1' token of lookahead to predict which grammar rule
+       to apply next, without needing to backtrack.
+- "Recursive Descent": Each rule in our grammar is mapped directly to 
+  a Java method. These methods call each other recursively to parse
+  nested structures (like expressions within if-statements).
+
+
+2. DATA WORKFLOW (How the compiler processes code)
+------------------------------------------------------------------------
+Source Code (.txt file) 
+      |
+      v
+[ PHASE 2: LEXICAL ANALYSIS (Lexer) ]
+- Reads the raw string character by character.
+- Groups characters into meaningful "words" called Tokens.
+- Strips out useless data (spaces, tabs, comments).
+      |
+      v
+Stream of Tokens (e.g., [IDENTIFIER(x), ASSIGN(=), NUMBER(5), SEMICOLON(;)])
+      |
+      v
+[ PHASE 3: SYNTAX ANALYSIS (Parser) ]
+- Asks the Lexer for tokens one by one.
+- Validates that the tokens appear in a grammatically correct order.
+- "Understands" operator precedence (e.g., * happens before +).
+- As it verifies the grammar, it builds a tree logic structure in memory.
+      |
+      v
+Abstract Syntax Tree (AST) (e.g., AssignNode -> x, NumberNode -> 5)
+      |
+      v
+[ FUTURE PHASES: SEMANTIC ANALYSIS & CODE GENERATION ]
+- Evaluates the logic (type checking, memory assignment).
+- Executes the AST directly (Interpreter) or writes Assembly/Bytecode (Compiler).
+
+
+3. FILES EXPLAINED BY PHASE
+------------------------------------------------------------------------
+
+=== PHASE 2: Lexical Analysis ===
+Folder: src/phase2/
+
+- TokenType.java
+  An 'enum' containing a standardized list of all possible valid token 
+  types (like PLUS, MINUS, IF, NUMBER, IDENTIFIER). It acts as the 
+  vocabulary of our language.
+
+- Token.java
+  A simple object representing a single recognized "word". It holds the 
+  TokenType, the actual string value (e.g., "5" or "x"), and the line/column
+  number for error reporting.
+
+- Lexer.java
+  The engine that reads the raw source code string. It uses a cursor to 
+  step through characters, identifies patterns (like digits = NUMBER, 
+  letters = IDENTIFIER), and packages them into Token objects. It also 
+  contains the crucial 'peekToken()' method allows the Parser to look 1 
+  word ahead safely.
+
+
+=== PHASE 3: Syntax Analysis & AST Construction ===
+Folder: src/phase3/
+
+* The AST Nodes (The Tree Building Blocks)
+- ASTNode.java: The parent class. Guarantees every node can print itself.
+- ProgramNode.java: The root of the tree, holding a list of statements.
+- BlockNode.java: Represents code wrapped in { }, used by if/while.
+- AssignmentNode.java: Represents variable assignment (x = 5;).
+- PrintNode.java: Represents a print command (print(x);).
+- IfNode.java: Represents branching logic (if condition { } else { }).
+- WhileNode.java: Represents looping logic (while condition { }).
+- BinaryOpNode.java: Represents operations with two sides (+, -, *, <, ==).
+- NumberNode.java: A leaf node representing a raw integer (e.g., 42).
+- IdentifierNode.java: A leaf node representing a variable name (e.g., x).
+
+* The Parser
+- Parser.java: The core logic. Instantiates the Lexer and asks for tokens.
+  It contains methods like 'parseStatement()', 'parseIfStmt()', and 
+  'parseExpression()'. It ensures the tokens match the expected grammar 
+  rules. When a rule is matched, it creates the corresponding ASTNode and 
+  links it to the rest of the growing tree. Operator precedence is baked 
+  directly into the order the methods call each other (primary -> factor 
+  -> term -> comparison -> equality).
