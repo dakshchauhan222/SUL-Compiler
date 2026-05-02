@@ -18,15 +18,12 @@ public class MainDriver {
         System.out.println("==================================================");
         System.out.println("  SUL Compiler - Full Pipeline Integration");
         System.out.println("==================================================");
-        System.out.println("Enter your source code (leave an empty line to finish and compile):");
+        System.out.println("Enter your source code (Ctrl+Z then Enter on Windows, or Ctrl+D on Linux to finish and compile):");
+        System.out.println("--------------------------------------------------------------------------------");
 
         StringBuilder sourceCode = new StringBuilder();
-        while (true) {
-            System.out.print("> ");
+        while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
-            if (line.trim().isEmpty()) {
-                break;
-            }
             sourceCode.append(line).append("\n");
         }
 

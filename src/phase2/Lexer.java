@@ -1,8 +1,12 @@
 package phase2;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.Stack;
 
 // Hand-written lexical analyser for the SUL language.
+// Updated to support Unstructured GenZ syntax (Indentation-based).
 public class Lexer {
 
     private final String source;   // entire source code as one string
@@ -10,34 +14,36 @@ public class Lexer {
     private int    line;       // current line number, error reporting
     private int    column;     // current column number, error reporting
 
+    private Stack<Integer> indentLevels;
+    private Queue<Token> pendingTokens;
+    private boolean atStartOfLine;
+
     public Lexer(String source) {
         this.source = source;
         this.pos    = 0;
         this.line   = 1;
         this.column = 1;
+        this.indentLevels = new Stack<>();
+        this.indentLevels.push(0); // Initial indent level
+        this.pendingTokens = new LinkedList<>();
+        this.atStartOfLine = true;
     }
 
-    // Returns the current character without consuming it. the use of this function is to check the next character without consuming it because the parser needs to look ahead to determine the type of token.
     private char peek() {
         if (isAtEnd()) return '\0';
         return source.charAt(pos);
     }
 
-    // Returns the character one position ahead without consuming. The use of this function is to check the next character without consuming it because the parser needs to look ahead to determine the type of token.
-    //the diff btw peek() and peekNext() is that peek() returns the current character and peekNext() returns the next character.Used for multi-character tokens like == and !=
     private char peekNext() {
         int nextPos = pos + 1;
         if (nextPos >= source.length()) return '\0';
         return source.charAt(nextPos);
     }
 
-    // Consumes the current character and advances the position. The use of this function is to consume the current character and advance the position because we need to move to the next character to continue scanning. Used for safety check
     private char advance() {
         if(isAtEnd()) return '\0';
-        //Move forward → consume character
         char ch = source.charAt(pos);
         pos++;
-        //Track position
         if (ch == '\n') {
             line++;
             column = 1;
@@ -47,49 +53,30 @@ public class Lexer {
         return ch;
     }
 
-    // Returns true if the lexer has reached the end of the source code.
     private boolean isAtEnd() {
         return pos >= source.length();
     }
 
-    // Skips whitespace and single-line comments (// … end-of-line).
-    private void skipWhitespace() {
-        while (!isAtEnd()) {
-            char ch = peek();
-
-            if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n') {
-                advance();
-                continue;
-            }
-
-            if (ch == '/' && peekNext() == '/') {
-                while (!isAtEnd() && peek() != '\n') {
-                    advance();
-                }
-                continue;
-            }
-
-            break;
+    private void skipLine() {
+        while (!isAtEnd() && peek() != '\n') {
+            advance();
         }
     }
-    // Returns true if the character is an alphabet.
+
     private boolean isAlpha(char ch) {
         return (ch >= 'a' && ch <= 'z')
             || (ch >= 'A' && ch <= 'Z')
             || ch == '_';
     }
 
-    // Returns true if the character is a digit.
     private boolean isDigit(char ch) {
         return ch >= '0' && ch <= '9';
     }
 
-    // Returns true if the character is an alphabet or a digit.
     private boolean isAlphaNumeric(char ch) {
         return isAlpha(ch) || isDigit(ch);
     }
 
-    // Scans a NUMBER token (one or more digits).
     private Token scanNumber(int startLine, int startColumn) {
         StringBuilder sb = new StringBuilder();
         while (!isAtEnd() && isDigit(peek())) {
@@ -98,29 +85,20 @@ public class Lexer {
         return new Token(TokenType.NUMBER, sb.toString(), startLine, startColumn);
     }
 
-    // Scans a STRING token.
     private Token scanString(int startLine, int startColumn) {
         StringBuilder sb = new StringBuilder();
         while (!isAtEnd() && peek() != '"') {
-            if (peek() == '\n') {
-                line++;
-                column++;
-            }
             sb.append(advance());
         }
         
         if (isAtEnd()) {
-            throw new RuntimeException(
-                "Lexer error at line " + startLine + ", column " + startColumn
-                + ": Unterminated string literal. Hint: Looks like you forgot to close your string! Make sure you add a closing quote (\") at the end of your text."
-            );
+            throw new RuntimeException("Unterminated string at line " + startLine);
         }
         
-        advance(); // Consume the closing quote
+        advance(); // consume closing quote
         return new Token(TokenType.STRING, sb.toString(), startLine, startColumn);
     }
 
-    // Scans an IDENTIFIER or KEYWORD token.
     private Token scanIdentifierOrKeyword(int startLine, int startColumn) {
         StringBuilder sb = new StringBuilder();
         while (!isAtEnd() && isAlphaNumeric(peek())) {
@@ -131,111 +109,167 @@ public class Lexer {
         return new Token(type, word, startLine, startColumn);
     }
 
-    // Returns the keyword TokenType for the given word, or IDENTIFIER if not a keyword.
     private TokenType lookupKeyword(String word) {
         switch (word) {
             case "sus":    return TokenType.IF;
-            case "cap":  return TokenType.ELSE;
-            case "bruh": return TokenType.WHILE;
-            case "yap": return TokenType.PRINT;
-            case "lowkey": return TokenType.LOWKEY;
-            case "aura": return TokenType.AURA;
-            case "main_character": return TokenType.MAIN_CHARACTER;
-            case "slay": return TokenType.SLAY;
-            default:      return TokenType.IDENTIFIER;
+            case "yap":    return TokenType.PRINT;
+            case "aura":   return TokenType.AURA;
+            case "fr":     return TokenType.NEWLINE; 
+            case "clears": return TokenType.GT;
+            case "flops":  return TokenType.LT;
+            case "gained": return TokenType.PLUS;
+            case "lost":   return TokenType.MINUS;
+            case "drop":   return TokenType.ASSIGN;
+            default:       return TokenType.IDENTIFIER;
         }
     }
 
-    // Returns the next token from the input.
     public Token getNextToken() {
-        skipWhitespace();
+        if (!pendingTokens.isEmpty()) return pendingTokens.poll();
 
-        if (isAtEnd()) {
-            return new Token(TokenType.EOF, "", line, column);
-        }
+        while (!isAtEnd()) {
+            if (atStartOfLine) {
+                atStartOfLine = false;
+                int spaces = 0;
+                while (!isAtEnd() && (peek() == ' ' || peek() == '\t')) {
+                    if (peek() == '\t') spaces += 4; else spaces++;
+                    advance();
+                }
 
-        int startLine   = line;
-        int startColumn = column;
-        char ch = peek();
+                if (isAtEnd()) break;
+                if (peek() == '\n' || peek() == '\r') {
+                    advance();
+                    if (peek() == '\n') advance();
+                    atStartOfLine = true;
+                    continue;
+                }
+                if (peek() == '/' && peekNext() == '/') {
+                    skipLine();
+                    atStartOfLine = true;
+                    continue;
+                }
 
-        if (isDigit(ch)) {
-            return scanNumber(startLine, startColumn);
-        }
-
-        if (isAlpha(ch)) {
-            return scanIdentifierOrKeyword(startLine, startColumn);
-        }
-
-        advance();
-
-        switch (ch) {
-            case '"': return scanString(startLine, startColumn);
-            case '+': return new Token(TokenType.PLUS,   "+", startLine, startColumn);
-            case '-': return new Token(TokenType.MINUS,  "-", startLine, startColumn);
-            case '*': return new Token(TokenType.STAR,   "*", startLine, startColumn);
-            case '/': return new Token(TokenType.SLASH,  "/", startLine, startColumn);
-
-            case '<':
-                    if (peek() == '=') {
-                        advance();
-                        return new Token(TokenType.LE, "<=", startLine, startColumn);
+                int prevIndent = indentLevels.peek();
+                if (spaces > prevIndent) {
+                    indentLevels.push(spaces);
+                    return new Token(TokenType.INDENT, "", line, column);
+                } else if (spaces < prevIndent) {
+                    while (!indentLevels.isEmpty() && spaces < indentLevels.peek()) {
+                        indentLevels.pop();
+                        pendingTokens.add(new Token(TokenType.DEDENT, "", line, column));
                     }
+                    if (indentLevels.isEmpty() || spaces != indentLevels.peek()) {
+                        throw new RuntimeException("Inconsistent indentation at line " + line);
+                    }
+                    if (!pendingTokens.isEmpty()) return pendingTokens.poll();
+                }
+            }
+
+            // Normal tokenization
+            while (!isAtEnd() && (peek() == ' ' || peek() == '\t')) advance();
+
+            if (isAtEnd()) break;
+
+            int startLine = line;
+            int startColumn = column;
+
+            // Check for multi-word keywords
+            String remaining = source.substring(pos).toLowerCase();
+            if (remaining.startsWith("its giving :")) {
+                for (int i=0; i < "its giving :".length(); i++) advance();
+                return new Token(TokenType.PROGRAM_START, "its giving :", startLine, startColumn);
+            }
+            if (remaining.startsWith("peace out")) {
+                for (int i=0; i < "peace out".length(); i++) advance();
+                return new Token(TokenType.PROGRAM_END, "peace out", startLine, startColumn);
+            }
+            if (remaining.startsWith("no cap :")) {
+                for (int i=0; i < "no cap :".length(); i++) advance();
+                return new Token(TokenType.ELSE, "no cap :", startLine, startColumn);
+            }
+            if (remaining.startsWith("hits same")) {
+                for (int i=0; i < "hits same".length(); i++) advance();
+                return new Token(TokenType.EQ, "hits same", startLine, startColumn);
+            }
+
+            char ch = peek();
+
+            if (ch == '\n' || ch == '\r') {
+                advance();
+                if (ch == '\r' && peek() == '\n') advance();
+                atStartOfLine = true;
+                return new Token(TokenType.NEWLINE, "\n", startLine, startColumn);
+            }
+
+            if (ch == '/' && peekNext() == '/') {
+                skipLine();
+                atStartOfLine = true;
+                return new Token(TokenType.NEWLINE, "\n", startLine, startColumn);
+            }
+
+            if (isDigit(ch)) return scanNumber(startLine, startColumn);
+            if (isAlpha(ch)) return scanIdentifierOrKeyword(startLine, startColumn);
+
+            advance();
+            switch (ch) {
+                case '"': return scanString(startLine, startColumn);
+                case '+': return new Token(TokenType.PLUS, "+", startLine, startColumn);
+                case '-': return new Token(TokenType.MINUS, "-", startLine, startColumn);
+                case '*': return new Token(TokenType.STAR, "*", startLine, startColumn);
+                case '/': return new Token(TokenType.SLASH, "/", startLine, startColumn);
+                case ':': return new Token(TokenType.COLON, ":", startLine, startColumn);
+                case ';': return new Token(TokenType.SEMICOLON, ";", startLine, startColumn);
+                case '=':
+                    if (peek() == '=') { advance(); return new Token(TokenType.EQ, "==", startLine, startColumn); }
+                    return new Token(TokenType.ASSIGN, "=", startLine, startColumn);
+                case '<':
+                    if (peek() == '=') { advance(); return new Token(TokenType.LE, "<=", startLine, startColumn); }
                     return new Token(TokenType.LT, "<", startLine, startColumn);
-
-            case '>':
-                if (peek() == '=') {
-                    advance();
-                    return new Token(TokenType.GE, ">=", startLine, startColumn);
-                }
-                return new Token(TokenType.GT, ">", startLine, startColumn);
-
-            case '=':
-                if (peek() == '=') {
-                    advance();
-                    return new Token(TokenType.EQ, "==", startLine, startColumn);
-                }
-                return new Token(TokenType.ASSIGN, "=", startLine, startColumn);
-
-            case '!':
-                if (peek() == '=') {
-                    advance();
-                    return new Token(TokenType.NEQ, "!=", startLine, startColumn);
-                }
-                throw new RuntimeException(
-                    "Lexer error at line " + startLine + ", column " + startColumn
-                    + ": unexpected character '!'. Hint: A single '!' doesn't do anything by itself! If you want to check if two things are 'not equal', use '!=' instead."
-                );
-
-            case '(': return new Token(TokenType.LPAREN,    "(", startLine, startColumn);
-            case ')': return new Token(TokenType.RPAREN,    ")", startLine, startColumn);
-            case '{': return new Token(TokenType.LBRACE,    "{", startLine, startColumn);
-            case '}': return new Token(TokenType.RBRACE,    "}", startLine, startColumn);
-            case ';': return new Token(TokenType.SEMICOLON, ";", startLine, startColumn);
-
-            default:
-                throw new RuntimeException(
-                    "Lexer error at line " + startLine + ", column " + startColumn
-                    + ": unexpected character '" + ch + "'. Hint: Oops, the character '" + ch + "' is not allowed in SUL! Double-check your typing."
-                );
+                case '>':
+                    if (peek() == '=') { advance(); return new Token(TokenType.GE, ">=", startLine, startColumn); }
+                    return new Token(TokenType.GT, ">", startLine, startColumn);
+                case '!':
+                    if (peek() == '=') { advance(); return new Token(TokenType.NEQ, "!=", startLine, startColumn); }
+                    throw new RuntimeException("Unexpected ! at line " + startLine);
+                case '(': return new Token(TokenType.LPAREN, "(", startLine, startColumn);
+                case ')': return new Token(TokenType.RPAREN, ")", startLine, startColumn);
+                default:
+                    throw new RuntimeException("Unexpected character " + ch + " at line " + startLine);
+            }
         }
+
+        // EOF: Close all open indentations
+        while (indentLevels.size() > 1) {
+            indentLevels.pop();
+            pendingTokens.add(new Token(TokenType.DEDENT, "", line, column));
+        }
+        pendingTokens.add(new Token(TokenType.EOF, "", line, column));
+        return pendingTokens.poll();
     }
 
-    // Lookahead (VERY IMPORTANT for parser)
     public Token peekToken() {
+        // Save state
         int savedPos = pos;
         int savedLine = line;
         int savedColumn = column;
+        boolean savedAtStartOfLine = atStartOfLine;
+        Stack<Integer> savedIndents = new Stack<>();
+        savedIndents.addAll(indentLevels);
+        Queue<Token> savedPending = new LinkedList<>(pendingTokens);
 
         Token token = getNextToken();
 
+        // Restore state
         pos = savedPos;
         line = savedLine;
         column = savedColumn;
+        atStartOfLine = savedAtStartOfLine;
+        indentLevels = savedIndents;
+        pendingTokens = savedPending;
 
         return token;
     }
 
-    // Tokenises the entire source and returns all tokens (including EOF).
     public List<Token> tokenize() {
         List<Token> tokens = new ArrayList<>();
         Token token;

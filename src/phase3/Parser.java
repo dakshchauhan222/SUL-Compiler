@@ -18,6 +18,14 @@ public class Parser {
     // The current lookahead token being examined to decide which grammatical rule applies.
     private Token currentToken;
 
+    // We track the token we just successfully matched to provide context-aware hints.
+    private Token previousToken;
+
+    private static final String[] GENZ_KEYWORDS = {
+        "sus", "yap", "aura", "fr", "clears", "flops", "gained", "lost", "drop", 
+        "its giving :", "peace out", "no cap :"
+    };
+
     // The parser initializes by requesting the very first token from the Lexer.
     public Parser(Lexer lexer) {
         this.lexer = lexer;
@@ -30,6 +38,7 @@ public class Parser {
     // If it's NOT what was expected, it throws a syntax error immediately, citing line and column numbers.
     private Token match(TokenType expected) {
         if (currentToken.getType() == expected) {
+            previousToken = currentToken;
             Token matched = currentToken;
             currentToken = lexer.getNextToken(); // Move forward
             return matched;
@@ -37,9 +46,25 @@ public class Parser {
         
         String hint = getHintForExpectedToken(expected);
         
+        // Proper Error Statement & Typo Detection
+        // If we were expecting 'drop' (=) but failed, check if the previous word was a typo.
+        if (expected == TokenType.ASSIGN && previousToken != null && previousToken.getType() == TokenType.IDENTIFIER) {
+            String typoHint = checkForTypos(previousToken.getValue());
+            if (typoHint != null) {
+                hint = typoHint;
+            }
+        }
+        // If the current token itself is an unrecognized word where a keyword was expected
+        else if (currentToken.getType() == TokenType.IDENTIFIER) {
+             String typoHint = checkForTypos(currentToken.getValue());
+             if (typoHint != null) {
+                 hint = typoHint;
+             }
+        }
+
         // Throws a helpful compilation error containing positional data.
         throw new RuntimeException(
-            "Parse error at line " + currentToken.getLine()
+            "Lexical/Syntax Error at line " + currentToken.getLine()
             + ", column " + currentToken.getColumn()
             + ": expected " + expected
             + " but found " + currentToken.getType()
@@ -51,16 +76,12 @@ public class Parser {
     // Provides helpful hints for common syntax errors.
     private String getHintForExpectedToken(TokenType expected) {
         switch(expected) {
-            case SEMICOLON: return "Every statement in SUL needs to end with a semicolon ';'. It's like a period at the end of a sentence! Example: x = 5;";
-            case LPAREN: return "Missing '('. You need an opening parenthesis here.";
-            case RPAREN: return "Missing ')'. Make sure you close all your parentheses like this: ( )";
-            case LBRACE: return "Missing '{'. Blocks of code need to be wrapped inside curly braces. Example: { yap(1); }";
-            case RBRACE: return "Missing '}'. It looks like you opened a '{' block but forgot to close it! Add a '}' to finish the block.";
-            case ASSIGN: return "Expected '=' for variable assignment. SUL requires you to initialize variables immediately! For example, try 'aura x = 0;' instead of just 'aura x;'";
-            case IDENTIFIER: return "We expected a variable name here. Variables must start with a letter (e.g., 'aura myVariable = 5;')";
-            case LOWKEY: return "Remember, every SUL program must be wrapped inside a 'lowkey ClassName { ... }' block!";
-            case MAIN_CHARACTER: return "The entry point of your program must be exactly: 'aura main_character() { ... }'. Did you spell it right?";
-            case SLAY: return "Did you forget to 'slay 0;' at the end of main_character? Every GenZ program must slay before it ends!";
+            case SEMICOLON: return "Line endings can be semicolons or just newlines!";
+            case INDENT: return "This block needs to be indented (shifted right)!";
+            case DEDENT: return "Block end expected.";
+            case ASSIGN: return "Expected '=' for variable assignment. For example, 'aura x = 0'";
+            case IDENTIFIER: return "We expected a variable name here.";
+            case SLAY: return "Every GenZ program must slay before it ends!";
             default: return "Double-check the GenZ syntax rules for this line! Something looks a bit off.";
         }
     }
@@ -76,85 +97,91 @@ public class Parser {
     // Each method maps directly to a high-level rule in the language's grammar.
     // ────────────────────────────────────────────────────────
 
-    // Parses the root node. A program must be wrapped in `lowkey X { aura main_character() { ... slay 0; } }`
+    // Parses the root node. A program now starts with 'its giving :' and ends with 'peace out'.
     public ProgramNode parse() {
         int line = currentToken.getLine();
         
-        // Parse GenZ wrapper:
-        match(TokenType.LOWKEY);
-        match(TokenType.IDENTIFIER);
-        match(TokenType.LBRACE);
+        match(TokenType.PROGRAM_START);
+        skipNewlines();
         
-        match(TokenType.AURA);
-        match(TokenType.MAIN_CHARACTER);
-        match(TokenType.LPAREN);
-        match(TokenType.RPAREN);
-        match(TokenType.LBRACE);
+        boolean hasTopLevelIndent = false;
+        if (currentToken.getType() == TokenType.INDENT) {
+            match(TokenType.INDENT);
+            hasTopLevelIndent = true;
+        }
         
         List<StatementNode> statements = parseStatementList();
         
-        match(TokenType.SLAY);
-        parseExpression(); // Parse return value, e.g., 0
-        match(TokenType.SEMICOLON);
+        if (hasTopLevelIndent) {
+            match(TokenType.DEDENT);
+        }
         
-        match(TokenType.RBRACE); // Close main_character
-        match(TokenType.RBRACE); // Close lowkey
+        // Final keyword 'peace out'
+        if (currentToken.getType() == TokenType.PROGRAM_END) {
+            match(TokenType.PROGRAM_END);
+        }
         
-        match(TokenType.EOF); // If there are leftover non-EOF tokens, it represents bad syntax.
+        skipNewlines();
+        match(TokenType.EOF); 
         return withLine(new ProgramNode(statements), line);
+    }
+
+    private void skipNewlines() {
+        while (currentToken.getType() == TokenType.NEWLINE) {
+            match(TokenType.NEWLINE);
+        }
+    }
+
+    private void consumeTerminator() {
+        if (currentToken.getType() == TokenType.SEMICOLON) {
+            match(TokenType.SEMICOLON);
+        } else if (currentToken.getType() == TokenType.NEWLINE) {
+            match(TokenType.NEWLINE);
+        } else if (currentToken.getType() == TokenType.EOF || currentToken.getType() == TokenType.DEDENT) {
+            // OK
+        } else {
+             // Fallback: expect a newline
+             match(TokenType.NEWLINE);
+        }
     }
 
     // Iteratively builds a list of statement nodes as long as the current token indicates the start of one.
     private List<StatementNode> parseStatementList() {
         List<StatementNode> statements = new ArrayList<>();
-        while (canStartStatement()) {
-            statements.add(parseStatement()); // Add parsed valid statements to the list
+        while (true) {
+            skipNewlines();
+            if (!canStartStatement()) break;
+            
+            StatementNode stmt = parseStatement();
+            statements.add(stmt); 
+            
+            if (!(stmt instanceof IfNode)) {
+                consumeTerminator();
+            }
         }
         return statements;
     }
 
-    // Helps parser decide whether the current loop in "parseStatementList" should continue running.
-    // Returning true means the current token is a keyword or identifier beginning a valid statement type.
     private boolean canStartStatement() {
         switch (currentToken.getType()) {
-            case IDENTIFIER: // Could be starting an assignment: "x = 5;"
-            case AURA:       // Could be starting an assignment with typing: "aura x = 5;"
-            case PRINT:      // Could be starting a print statement: "yap(x);"
-            case IF:         // Could be an if-block start: "sus(..)"
-            case WHILE:      // Could be a loop start: "bruh(..)"
-            case LBRACE:     // Could be starting an anonymous standalone block "{ .. }"
+            case IDENTIFIER:
+            case AURA:      
+            case PRINT:     
+            case IF:        
                 return true;
             default:
                 return false;
         }
     }
 
-    // Looks at the current token to make an 'LL(1) lookahead' decision. 
-    // It branches execution to the specific handler matching the statement type it suspects.
     private StatementNode parseStatement() {
         switch (currentToken.getType()) {
             case AURA:
-            case IDENTIFIER: if (lexer.peekToken().getType() == TokenType.ASSIGN || currentToken.getType() == TokenType.AURA) {
-                return parseAssignment();
-            } else {
-                throw new RuntimeException(
-                    "Parse error at line " + currentToken.getLine() + ", column " 
-                    + currentToken.getColumn() + ": Invalid statement starting with identifier. Hint: Ensure variables are assigned correctly (e.g., aura x = 5; or x = 5;)."
-                );
-            }
+            case IDENTIFIER: return parseAssignment();
             case PRINT:      return parsePrintStmt();
             case IF:         return parseIfStmt();
-            case WHILE:      return parseWhileStmt();
-            case LBRACE:     return parseBlock();
             default:
-                // Throws an error explaining a statement wasn't provided where required.
-                throw new RuntimeException(
-                    "Parse error at line " + currentToken.getLine()
-                    + ", column " + currentToken.getColumn()
-                    + ": unexpected token " + currentToken.getType()
-                    + "('" + currentToken.getValue() + "'). "
-                    + "Hint: Expected a valid statement keyword like 'sus', 'bruh', 'yap', or an 'aura' variable assignment."
-                );
+                throw new RuntimeException("Unexpected token in statement: " + currentToken.getType());
         }
     }
 
@@ -164,21 +191,17 @@ public class Parser {
         if (currentToken.getType() == TokenType.AURA) {
             match(TokenType.AURA);
         }
-        Token id = match(TokenType.IDENTIFIER); // Variable name
-        match(TokenType.ASSIGN);                // "=" sign
-        ExpressionNode expr = parseExpression();       // Complex logical/arithmetic expression on the right side
-        match(TokenType.SEMICOLON);             // Terminator
+        Token id = match(TokenType.IDENTIFIER); 
+        match(TokenType.ASSIGN);                
+        ExpressionNode expr = parseExpression();
         return withLine(new AssignmentNode(id.getValue(), expr), line);
     }
 
     // Handler for a print statement. Expects: print ( EXPRESSION ) ;
     private PrintNode parsePrintStmt() {
         int line = currentToken.getLine();
-        match(TokenType.PRINT);       // 'print' Keyword
-        match(TokenType.LPAREN);      // Open parenthesis
+        match(TokenType.PRINT);       
         ExpressionNode expr = parseExpression();
-        match(TokenType.RPAREN);      // Close parenthesis
-        match(TokenType.SEMICOLON);   // Terminator
         return withLine(new PrintNode(expr), line);
     }
 
@@ -186,42 +209,40 @@ public class Parser {
     private IfNode parseIfStmt() {
         int line = currentToken.getLine();
         match(TokenType.IF);
-        match(TokenType.LPAREN);
         ExpressionNode condition = parseExpression();
-        match(TokenType.RPAREN);
 
-        // Branching executed when expression yields "true" 
+        // Optional colon after condition
+        if (currentToken.getType() == TokenType.COLON) {
+            match(TokenType.COLON);
+        }
+
         BlockNode thenBlock = parseBlock();
 
-        // Null until proven otherwise. We use a 1-token lookahead to check if the programmer typed "else".
         BlockNode elseBlock = null;
         if (currentToken.getType() == TokenType.ELSE) {
             match(TokenType.ELSE);
-            elseBlock = parseBlock(); // Parses the block linked to the else fallback
+            // Optional colon after 'no cap :' (though Lexer might include it)
+            if (currentToken.getType() == TokenType.COLON) {
+                match(TokenType.COLON);
+            }
+            elseBlock = parseBlock(); 
         }
 
         return withLine(new IfNode(condition, thenBlock, elseBlock), line);
     }
 
-    // Handler for while-loops. Expects: while ( EXPRESSION ) BLOCK
-    private WhileNode parseWhileStmt() {
-        int line = currentToken.getLine();
-        match(TokenType.WHILE);
-        match(TokenType.LPAREN);
-        ExpressionNode condition = parseExpression(); // Expression resulting in true/false
-        match(TokenType.RPAREN);
-
-        BlockNode body = parseBlock(); // Repeated body logic
-
-        return withLine(new WhileNode(condition, body), line);
-    }
-
     // Handler for blocks (used largely by if/else and while features). Expects: { STATEMENT_LIST }
     private BlockNode parseBlock() {
         int line = currentToken.getLine();
-        match(TokenType.LBRACE); // Opening brace
-        List<StatementNode> stmts = parseStatementList(); // Plurality of valid statement lines
-        match(TokenType.RBRACE); // Closing brace
+        // A block now starts with a newline and indentation.
+        // We skip any trailing colon before the block starts.
+        if (currentToken.getType() == TokenType.COLON) {
+            match(TokenType.COLON);
+        }
+        consumeTerminator();
+        match(TokenType.INDENT);
+        List<StatementNode> stmts = parseStatementList();
+        match(TokenType.DEDENT);
         return withLine(new BlockNode(stmts), line);
     }
 
@@ -363,5 +384,47 @@ public class Parser {
                     + "Hint: Expected a primary value like a NUMBER, IDENTIFIER (variable), or parenthesized expression '('."
                 );
         }
+    }
+
+    // ────────────────────────────────────────────────────────
+    // Typo Detection Utility Methods
+    // ────────────────────────────────────────────────────────
+
+    private String checkForTypos(String word) {
+        String closest = null;
+        int minDistance = 2; // Threshold for a typo
+
+        for (String keyword : GENZ_KEYWORDS) {
+            String baseKeyword = keyword.replace(" :", "").trim();
+            int distance = calculateLevenshteinDistance(word.toLowerCase(), baseKeyword.toLowerCase());
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                closest = keyword;
+            }
+        }
+
+        if (closest != null) {
+            return "Unrecognized token '" + word + "'. Did you mean the keyword '" + closest + "'?";
+        }
+        return null;
+    }
+
+    private int calculateLevenshteinDistance(String s1, String s2) {
+        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+        for (int i = 0; i <= s1.length(); i++) {
+            for (int j = 0; j <= s2.length(); j++) {
+                if (i == 0) dp[i][j] = j;
+                else if (j == 0) dp[i][j] = i;
+                else {
+                    dp[i][j] = Math.min(Math.min(
+                        dp[i - 1][j] + 1,
+                        dp[i][j - 1] + 1),
+                        dp[i - 1][j - 1] + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1)
+                    );
+                }
+            }
+        }
+        return dp[s1.length()][s2.length()];
     }
 }

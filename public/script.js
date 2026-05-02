@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const auraScoreEl = document.getElementById('auraScore');
     const auraFill = document.getElementById('auraFill');
     const auraMeterBtn = document.getElementById('auraMeterBtn');
+    const helpBtn = document.getElementById('helpBtn');
     let currentAura = 0;
 
     // Cursor position tracker
@@ -22,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lines = text.substring(0, cursorPos).split('\n');
         const line = lines.length;
         const col = lines[lines.length - 1].length + 1;
-        if(cursorPosEl) cursorPosEl.innerText = `Ln ${line}, Col ${col}`;
+        if (cursorPosEl) cursorPosEl.innerText = `Ln ${line}, Col ${col}`;
     };
     codeEditor.addEventListener('keyup', updateCursorPos);
     codeEditor.addEventListener('click', updateCursorPos);
@@ -30,9 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Aura logic
     const updateAura = (amt) => {
         currentAura = Math.max(0, Math.min(100, currentAura + amt));
-        if(auraScoreEl) auraScoreEl.innerText = currentAura;
-        if(auraFill) auraFill.style.width = currentAura + '%';
-        if(currentAura >= 90 && amt > 0) {
+        if (auraScoreEl) auraScoreEl.innerText = currentAura;
+        if (auraFill) auraFill.style.width = currentAura + '%';
+        if (currentAura >= 90 && amt > 0) {
             shootConfetti();
         }
     };
@@ -54,46 +55,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const streakOverlay = document.getElementById('streakOverlay');
     const closeStreakBtn = document.getElementById('closeStreakBtn');
     const streakScoreDisplay = document.getElementById('streakScoreDisplay');
+    const helpModal = document.getElementById('helpModal');
+    const closeHelpBtn = document.getElementById('closeHelpBtn');
 
     if (auraMeterBtn && streakOverlay) {
         auraMeterBtn.addEventListener('click', () => {
             streakScoreDisplay.innerText = currentAura;
             streakOverlay.classList.remove('hidden');
-            shootConfetti(); 
+            shootConfetti();
         });
-        
+
         closeStreakBtn.addEventListener('click', () => {
             streakOverlay.classList.add('hidden');
+        });
+    }
+
+    if (helpBtn && helpModal) {
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.remove('hidden');
+        });
+
+        closeHelpBtn.addEventListener('click', () => {
+            helpModal.classList.add('hidden');
+        });
+
+        // Close on outside click
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                helpModal.classList.add('hidden');
+            }
         });
     }
 
     // Syntax Highlighting Engine
     const highlightCode = (text) => {
         let hl = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        
-        // GenZ Keywords (Use single quotes to avoid breaking the String double-quote regex)
-        const keywords = ['lowkey', 'aura', 'main_character', 'slay', 'sus', 'cap', 'bruh', 'yap'];
-        const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'g');
-        hl = hl.replace(keywordRegex, "<span class='hl-keyword'>$1</span>");
-        
+
+        // GenZ Keywords & Operators (Handling multi-word keywords)
+        const keywords = ['its giving :', 'peace out', 'no cap :', 'hits same', 'clears', 'flops', 'gained', 'lost', 'drop', 'aura', 'sus', 'yap', 'fr'];
+        // Sort keywords by length descending to match longest phrases first
+        keywords.sort((a, b) => b.length - a.length);
+
+        const keywordRegex = new RegExp(`(${keywords.join('|')})`, 'g');
+        hl = hl.replace(keywordRegex, (match) => {
+            return `<span class='hl-keyword'>${match}</span>`;
+        });
+
         // Strings (Strip any injected spans inside the string to keep it pure blue)
         hl = hl.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
             let pureText = match.replace(/<[^>]+>/g, '');
             return "<span class='hl-string'>" + pureText + "</span>";
         });
-        
+
         // Numbers
         hl = hl.replace(/\b(\d+)\b/g, "<span class='hl-number'>$1</span>");
-        
+
         // Single Line Comments (strip inner spans so keywords inside comments turn grey too)
         hl = hl.replace(/(\/\/.*)/g, (match) => {
             let pureText = match.replace(/<[^>]+>/g, '');
             return "<span class='hl-comment'>" + pureText + "</span>";
         });
-        
+
         // Prevent collapsing of trailing newlines which misaligns textarea cursor
         if (hl.endsWith('\n')) hl += ' ';
-        
+
         return hl;
     };
 
@@ -143,19 +168,24 @@ document.addEventListener('DOMContentLoaded', () => {
         outputDisplay.scrollTop = outputDisplay.scrollHeight;
     };
 
+    const playSound = (type) => {
+        const audio = new Audio(type === 'success' ? 'success.mp3' : 'error.mp3');
+        audio.play().catch(e => console.log("Sound play failed (interaction required?):", e));
+    };
+
     // AST Visualizer Engine
     const buildASTTree = (astString) => {
         const lines = astString.split('\n').filter(l => l.trim() !== '');
         if (lines.length === 0) return null;
-        
+
         let root = { depth: -1, children: [] };
         let stack = [root];
-        
+
         for (let line of lines) {
             const depth = line.search(/\S/);
             const content = line.trim();
             const node = { depth, content, children: [] };
-            
+
             while (stack.length > 1 && stack[stack.length - 1].depth >= depth) {
                 stack.pop();
             }
@@ -203,19 +233,19 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const data = await response.json();
-            
+
             // Hide loading indicator as we start typing out the response
             loadingIndicator.classList.add('hidden');
-            
+
             if (data.phases && data.phases.length > 0) {
                 // Interactive Phase Output
                 for (let i = 0; i < data.phases.length; i++) {
                     const phase = data.phases[i];
-                    
+
                     // Announce the phase
-                    appendToTerminal(`<br><b style="color:var(--accent)">[Phase ${i+1}/${data.phases.length}] Running ${phase.name}...</b><br>`);
+                    appendToTerminal(`<br><b style="color:var(--accent)">[Phase ${i + 1}/${data.phases.length}] Running ${phase.name}...</b><br>`);
                     await sleep(400); // Dramatic pause
-                    
+
                     // Show output
                     if (phase.status === 'success') {
                         if (phase.name === "Syntax Analysis (AST)") {
@@ -224,33 +254,39 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else {
                             appendToTerminal(`<span class="code" style="opacity:0.8">${escapeHtml(phase.output)}<br></span>`);
                         }
-                        await sleep(500); 
+                        await sleep(500);
                     } else {
                         let errorOutput = escapeHtml(phase.output);
-                        if (errorOutput.includes("Hint:")) {
-                            errorOutput = errorOutput.replace("Hint:", '<br><br><strong style="color: var(--hint-color, #ffd700);">💡 Hint:</strong><span style="color: var(--hint-color, #ffd700);">') + '</span>';
+                        if (errorOutput.includes("Hint:") || errorOutput.includes("Did you mean")) {
+                            const hintText = errorOutput.includes("Hint:") ? "Hint:" : "Did you mean";
+                            errorOutput = errorOutput.replace(hintText, '<br><br><strong style="color: var(--hint-color, #ffd700);">💡 Suggestion:</strong><span style="color: var(--hint-color, #ffd700);">') + '</span>';
                         }
                         appendToTerminal(`<span class="error"><b>[!] ERROR:</b><br>${errorOutput}<br></span>`);
+                        playSound('error');
                         break; // Stop executing pipeline on error
                     }
                 }
-                
+
                 if (data.success) {
                     await sleep(300);
                     appendToTerminal(`<br><b style="color:var(--success)">[+] Compilation Pipeline Completed Successfully!</b><br>`);
+                    playSound('success');
                     updateAura(8);
                 } else {
                     appendToTerminal(`<br><b style="color:var(--error)">[-] Compilation Aborted.</b><br>`);
+                    playSound('error');
                     updateAura(-12);
                 }
             } else if (!data.success) {
                 appendToTerminal(`<span class="error">${escapeHtml(data.error)}</span>`);
+                playSound('error');
                 updateAura(-12);
             }
 
         } catch (error) {
             loadingIndicator.classList.add('hidden');
             appendToTerminal(`<span class="error">Fatal Error: Could not connect to backend.\\n${error.message}</span>`);
+            playSound('error');
             updateAura(-12);
         } finally {
             runBtn.classList.remove('disabled');

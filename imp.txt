@@ -1,0 +1,5 @@
+Phase 1: Lexical Anaylsis: Hand Written Finite Automata for Indentation Sensitive Tokenization.
+Phase 2: Syntactic Analysis: Top down predictive parsing,  Recursive Descent LL(1) Parser to Build AST.
+Phase 3: Semantic Analysis: Abstract Syntax Tree (AST) Traversal, symbol table management, and type checking.
+Phase 4: Code Generation: Syntax Directed Translation (SDT) and Stack based intermediate representation.
+Phase 5: Code Optimization : Assembler and Linker for x86-64 architecture.

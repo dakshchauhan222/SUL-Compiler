@@ -209,9 +209,11 @@ public class CodeGenerator {
             
             switch (binNode.getOperator()) {
                 case "+":
+                case "gained":
                     emit("add rax, rbx", "MATH: Add both processing units together");
                     break;
                 case "-":
+                case "lost":
                     emit("sub rax, rbx", "MATH: Subtract the right side from the left side");
                     break;
                 case "*":
@@ -222,10 +224,13 @@ public class CodeGenerator {
                     emit("idiv rbx", "MATH: Divide the left side by the right side securely");
                     break;
                 case "==":
+                case "hits same":
                 case "!=":
                 case "<":
+                case "flops":
                 case "<=":
                 case ">":
+                case "clears":
                 case ">=":
                     generateRelationalOp(binNode.getOperator());
                     break;
@@ -240,11 +245,14 @@ public class CodeGenerator {
     private void generateRelationalOp(String operator) {
         emit("cmp rax, rbx", "LOGIC: Directly contrast the two values against each other");
         switch (operator) {
-            case "==": emit("sete al", "LOGIC: If they are strictly EQUAL, flag memory to '1'"); break;
+            case "==":
+            case "hits same": emit("sete al", "LOGIC: If they are strictly EQUAL, flag memory to '1'"); break;
             case "!=": emit("setne al", "LOGIC: If they are exactly NOT EQUAL, flag memory to '1'"); break;
-            case "<":  emit("setl al", "LOGIC: If the left is LESS, flag memory to '1'"); break;
+            case "<":
+            case "flops":  emit("setl al", "LOGIC: If the left is LESS, flag memory to '1'"); break;
             case "<=": emit("setle al", "LOGIC: If the left is LESS/EQUAL, flag memory to '1'"); break;
-            case ">":  emit("setg al", "LOGIC: If the left is GREATER, flag memory to '1'"); break;
+            case ">":
+            case "clears":  emit("setg al", "LOGIC: If the left is GREATER, flag memory to '1'"); break;
             case ">=": emit("setge al", "LOGIC: If the left is GREATER/EQUAL, flag memory to '1'"); break;
         }
         emit("movzx rax, al", "CPU: Zero-extend the boolean 1 or 0 safely into the 64-bit 'rax' register");

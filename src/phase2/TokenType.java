@@ -4,10 +4,10 @@ package phase2;
 public enum TokenType {
 
     // Keywords
-    IF, ELSE, WHILE, PRINT,
-    LOWKEY, AURA, MAIN_CHARACTER, SLAY,
+    IF, ELSE, PRINT, AURA, SLAY,
+    PROGRAM_START, PROGRAM_END,
 
-    // Arithmetic Operators
+    // Arithmetic Operators (GenZ Version)
     PLUS, MINUS, STAR, SLASH,
 
     // Assignment Operator
@@ -17,10 +17,13 @@ public enum TokenType {
     GT, LT, EQ, NEQ, LE, GE,
 
     // Symbols / Delimiters
-    LPAREN, RPAREN, LBRACE, RBRACE, SEMICOLON,
+    LPAREN, RPAREN, LBRACE, RBRACE, SEMICOLON, COLON,
 
     // Identifiers & Literals
     IDENTIFIER, NUMBER, STRING,
+
+    // Indentation & Newlines
+    INDENT, DEDENT, NEWLINE,
 
     // Special
     EOF

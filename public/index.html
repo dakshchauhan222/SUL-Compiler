@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SUL Compiler Web IDE</title>
     <link rel="stylesheet" href="style.css">
     <!-- Google Fonts for typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&family=Outfit:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&family=Outfit:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
     <div class="app-container">
         <!-- Header -->
@@ -20,12 +24,29 @@
                 <button id="themeToggleBtn" class="btn btn-secondary">
                     <span>Theme: Default</span>
                 </button>
+                <button id="helpBtn" class="btn btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Help
+                </button>
                 <button id="clearBtn" class="btn btn-secondary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>
                     Clear Output
                 </button>
                 <button id="runBtn" class="btn btn-primary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
                     <span>Run Code</span>
                 </button>
             </div>
@@ -44,16 +65,18 @@
                     <div id="lineNumbers" class="line-numbers">1</div>
                     <div class="editor-container">
                         <pre id="highlightLayer" class="highlight-layer" aria-hidden="true"></pre>
-                        <textarea id="codeEditor" spellcheck="false" placeholder="// Write your SUL code here...&#10;lowkey Main {&#10;    aura main_character() {&#10;        yap(&quot;Hello Teacher! Native x86 Strings!&quot;);&#10;&#10;        aura x = 5;&#10;        aura y = 10;&#10;        bruh (x < y) {&#10;            yap(x);&#10;            x = x + 1;&#10;        }&#10;        sus (x == 10) {&#10;            yap(999);&#10;        } cap {&#10;            yap(1000);&#10;        }&#10;        slay 0;&#10;    }&#10;}"></textarea>
+                        <textarea id="codeEditor" spellcheck="false"
+                            placeholder="its giving :&#10;&#10;    aura marks drop 85&#10;    aura passing drop 40&#10;&#10;    yap &quot;Student Grade Checker fr&quot;&#10;&#10;    sus marks clears passing :&#10;        yap &quot;Distinction no cap 🔥&quot;&#10;    no cap :&#10;        yap &quot;mid performance ngl&quot;&#10;&#10;    aura bonus drop marks gained 5&#10;    yap bonus fr&#10;&#10;peace out"></textarea>
                     </div>
                 </div>
                 <!-- Status Bar -->
                 <div class="status-bar">
                     <div class="status-left">
                         <span class="status-dot green"></span>
-                        <span id="statusMessage">Ready to slay</span>
+                        <span id="statusMessage">Vibe check passed</span>
                     </div>
-                    <div class="status-center" id="auraMeterBtn" title="Click to view Aura Streak!" style="cursor: pointer;">
+                    <div class="status-center" id="auraMeterBtn" title="Click to view Aura Streak!"
+                        style="cursor: pointer;">
                         <span style="font-weight: 600;">AURA</span>
                         <div class="aura-track">
                             <div id="auraFill" class="aura-fill" style="width: 0%;"></div>
@@ -77,7 +100,8 @@
                         <div class="spinner"></div>
                         <span>Compiling pipeline...</span>
                     </div>
-                    <pre id="outputDisplay" class="output-display"><span class="placeholder">Awaiting compilation...</span></pre>
+                    <pre id="outputDisplay"
+                        class="output-display"><span class="placeholder">Awaiting compilation...</span></pre>
                 </div>
             </section>
         </main>
@@ -96,6 +120,112 @@
         </div>
     </div>
 
+    <!-- Help Modal Overlay -->
+    <div id="helpModal" class="streak-overlay hidden">
+        <div class="streak-content help-modal-content">
+            <button type="button" id="closeHelpBtn" class="streak-close">&times;</button>
+            <div class="panel-header" style="background: transparent; border: none; padding-top: 0;">
+                <h2 style="color: var(--accent); font-size: 1.5rem;">SUL Guide & Mappings</h2>
+            </div>
+
+            <div class="help-scroll-container">
+                <div class="help-section">
+                    <h3>Keyword Mapping</h3>
+                    <table class="help-table">
+                        <thead>
+                            <tr>
+                                <th>GenZ Slang</th>
+                                <th>C Equivalent</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>its giving :</td>
+                                <td>void main() {</td>
+                                <td>Program start</td>
+                            </tr>
+                            <tr>
+                                <td>peace out</td>
+                                <td>}</td>
+                                <td>Program end</td>
+                            </tr>
+                            <tr>
+                                <td>aura</td>
+                                <td>int</td>
+                                <td>Variable declaration</td>
+                            </tr>
+                            <tr>
+                                <td>drop</td>
+                                <td>=</td>
+                                <td>Assignment</td>
+                            </tr>
+                            <tr>
+                                <td>sus ... :</td>
+                                <td>if (...) {</td>
+                                <td>If condition</td>
+                            </tr>
+                            <tr>
+                                <td>no cap :</td>
+                                <td>else {</td>
+                                <td>Else branch</td>
+                            </tr>
+                            <tr>
+                                <td>yap</td>
+                                <td>print()</td>
+                                <td>Output</td>
+                            </tr>
+                            <tr>
+                                <td>clears</td>
+                                <td>&gt;</td>
+                                <td>Greater than</td>
+                            </tr>
+                            <tr>
+                                <td>flops</td>
+                                <td>&lt;</td>
+                                <td>Less than</td>
+                            </tr>
+                            <tr>
+                                <td>hits same</td>
+                                <td>==</td>
+                                <td>Equality</td>
+                            </tr>
+                            <tr>
+                                <td>gained</td>
+                                <td>+</td>
+                                <td>Addition</td>
+                            </tr>
+                            <tr>
+                                <td>lost</td>
+                                <td>-</td>
+                                <td>Subtraction</td>
+                            </tr>
+                            <tr>
+                                <td>fr</td>
+                                <td>;</td>
+                                <td>Terminator</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h3>Basic Structure</h3>
+                    <ul class="help-list">
+                        <li><strong>Indentation:</strong> Code blocks (inside <code>sus</code> or <code>no cap</code>)
+                            must be indented (use Tab or 4 spaces).</li>
+                        <li><strong>Layout:</strong> Start with <code>its giving :</code> and end with
+                            <code>peace out</code>.</li>
+                        <li><strong>Variables:</strong> Use <code>aura x drop 10</code> to create a variable.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="streak-instruction">Stay rizzful! 🚀</div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
+
 </html>

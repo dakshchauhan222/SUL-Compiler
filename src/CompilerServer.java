@@ -86,7 +86,7 @@ public class CompilerServer {
                     tokenStr.append(" ");
                 }
                 json.append("    { \"name\": \"Lexical Analysis\", \"status\": \"success\", \"output\": \"").append(escapeJson(tokenStr.toString().trim())).append("\" }");
-
+                
                 // Phase 2: Syntax Analysis (AST)
                 Lexer lexer = new Lexer(sourceCode);
                 Parser parser = new Parser(lexer);
@@ -99,19 +99,22 @@ public class CompilerServer {
                 semanticAnalyzer.analyze(astRoot);
                 json.append(",\n    { \"name\": \"Semantic Analysis\", \"status\": \"success\", \"output\": \"Validated successfully. 0 scope/variable errors.\" }");
                     
-                    // Phase 4: Code Generation
-                    CodeGenerator codeGenerator = new CodeGenerator();
-                    String assembly = codeGenerator.generate(astRoot);
-                    json.append(",\n    { \"name\": \"Code Generation (x86-64 NASM)\", \"status\": \"success\", \"output\": \"").append(escapeJson(assembly)).append("\" }");
-                    
-                    // Always write out assembly for the user's reference locally
-                    try (java.io.FileWriter fileWriter = new java.io.FileWriter("output.asm")) {
-                        fileWriter.write(assembly);
-                    }
-                    // Phase 6: Program Execution (Native Compilation Pipeline)
-                    phase6.NativeCompiler runner = new phase6.NativeCompiler();
-                    String finalOutput = runner.execute(astRoot);
-                    json.append(",\n    { \"name\": \"Program Runtime Execution (Native Binary execution via NASM/GCC)\", \"status\": \"success\", \"output\": \"").append(escapeJson(finalOutput)).append("\" }\n");
+                // Phase 4: Intermediate Code Generation
+                CodeGenerator codeGenerator = new CodeGenerator();
+                String assembly = codeGenerator.generate(astRoot);
+                json.append(",\n    { \"name\": \"Intermediate Code Generation\", \"status\": \"success\", \"output\": \"Abstract Syntax Tree translated to Intermediate Representation.\" }");
+
+                // Phase 5: Machine Code Generation (x86-64 NASM)
+                // This phase finalizes the assembly and writes it to a file
+                try (java.io.FileWriter fileWriter = new java.io.FileWriter("output.asm")) {
+                    fileWriter.write(assembly);
+                }
+                json.append(",\n    { \"name\": \"Machine Code Generation (x86-64 NASM)\", \"status\": \"success\", \"output\": \"").append(escapeJson(assembly)).append("\" }");
+
+                // Phase 6: Program Runtime Execution
+                phase6.NativeCompiler runner = new phase6.NativeCompiler();
+                String finalOutput = runner.execute(astRoot);
+                json.append(",\n    { \"name\": \"Program Runtime Execution\", \"status\": \"success\", \"output\": \"").append(escapeJson(finalOutput)).append("\" }\n");
                     
                     // Reset errors on success
                     consecutiveErrors = 0;
@@ -123,11 +126,21 @@ public class CompilerServer {
                 String phaseName = "Lexical Analysis";
                 if (msg.contains("Parse")) phaseName = "Syntax Analysis (AST)";
                 else if (msg.contains("Semantic")) phaseName = "Semantic Analysis";
+                else if (msg.contains("Lexical")) phaseName = "Lexical Analysis";
                 
-                json.append(",\n    { \"name\": \"").append(phaseName).append("\", \"status\": \"error\", \"output\": \"").append(escapeJson(msg)).append("\" }\n");
+                // If the first phase failed, we don't need a comma
+                if (json.toString().trim().endsWith("[")) {
+                    json.append("    { \"name\": \"").append(phaseName).append("\", \"status\": \"error\", \"output\": \"").append(escapeJson(msg)).append("\" }\n");
+                } else {
+                    json.append(",\n    { \"name\": \"").append(phaseName).append("\", \"status\": \"error\", \"output\": \"").append(escapeJson(msg)).append("\" }\n");
+                }
                 success = false;
             } catch (Exception e) {
-                json.append(",\n    { \"name\": \"Compilation Pipeline\", \"status\": \"error\", \"output\": \"Unexpected server error: ").append(escapeJson(e.getMessage())).append("\" }\n");
+                if (json.toString().trim().endsWith("[")) {
+                    json.append("    { \"name\": \"Compilation Pipeline\", \"status\": \"error\", \"output\": \"Unexpected server error: ").append(escapeJson(e.getMessage())).append("\" }\n");
+                } else {
+                    json.append(",\n    { \"name\": \"Compilation Pipeline\", \"status\": \"error\", \"output\": \"Unexpected server error: ").append(escapeJson(e.getMessage())).append("\" }\n");
+                }
                 success = false;
             }
 

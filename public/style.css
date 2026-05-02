@@ -733,3 +733,131 @@ details > summary::before {
 details[open] > summary::before {
     transform: rotate(90deg);
 }
+
+/* Help Modal Specific Styling */
+.help-modal-content {
+    max-width: 800px;
+    width: 90%;
+    max-height: 85vh;
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.help-scroll-container {
+    overflow-y: auto;
+    padding-right: 1rem;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+/* Custom Scrollbar for Help */
+.help-scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+.help-scroll-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+.help-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 10px;
+}
+
+.help-section {
+    margin-bottom: 2rem;
+}
+
+.help-section h3 {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.help-section h3::before {
+    content: '✨';
+}
+
+.help-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.help-table th, .help-table td {
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--border);
+    text-align: left;
+}
+
+.help-table th {
+    background: rgba(88, 166, 255, 0.1);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.help-table tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.help-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.help-list li {
+    margin-bottom: 0.8rem;
+    padding-left: 1.5rem;
+    position: relative;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.help-list li::before {
+    content: '➜';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+.help-list code {
+    background: var(--bg-dark);
+    color: var(--accent);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+}
+
+/* Theme specific overrides for help modal */
+body[data-theme="vaporwave"] .help-modal-content {
+    background: #ffffff;
+    border: 2px solid #eddfeb;
+    box-shadow: 0 10px 40px rgba(214, 175, 218, 0.3);
+}
+
+body[data-theme="vaporwave"] .help-table th {
+    background: #f0e6f2;
+    color: #a08cb3;
+}
+
+body[data-theme="vaporwave"] .help-section h3,
+body[data-theme="vaporwave"] .help-list li {
+    color: #4a4555;
+}
+
+body[data-theme="hacker"] .help-modal-content {
+    border-color: #00ff00;
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
+}
+
+body[data-theme="hacker"] .help-table th {
+    background: #001100;
+    color: #00ff00;
+}

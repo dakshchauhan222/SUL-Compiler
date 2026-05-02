@@ -92,17 +92,31 @@ public class NativeCompiler {
             BinaryOpNode node = (BinaryOpNode) expr;
             int left = evaluateExpression(node.getLeft());
             int right = evaluateExpression(node.getRight());
-            switch (node.getOperator()) {
-                case "+": return left + right;
-                case "-": return left - right;
-                case "*": return left * right;
+            String op = node.getOperator();
+            
+            switch (op) {
+                case "+":
+                case "gained": 
+                    return left + right;
+                case "-":
+                case "lost":   
+                    return left - right;
+                case "*": 
+                    return left * right;
                 case "/": 
                     if (right == 0) throw new ArithmeticException("Division by zero");
                     return left / right;
-                case "==": return left == right ? 1 : 0;
-                case "!=": return left != right ? 1 : 0;
-                case "<":  return left < right ? 1 : 0;
-                case ">":  return left > right ? 1 : 0;
+                case "==":
+                case "hits same":
+                    return left == right ? 1 : 0;
+                case "!=": 
+                    return left != right ? 1 : 0;
+                case "<":
+                case "flops": 
+                    return left < right ? 1 : 0;
+                case ">":
+                case "clears": 
+                    return left > right ? 1 : 0;
                 case "<=": return left <= right ? 1 : 0;
                 case ">=": return left >= right ? 1 : 0;
                 default: return 0;
